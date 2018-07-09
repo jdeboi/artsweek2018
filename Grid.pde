@@ -117,7 +117,7 @@ void setRects() {
     for (int y = 0; y < numLinesY-1; y++) {
       float ysp = rectH * 1.0/(numLinesY -1);
       float xsp = rectW * 1.0/(numLinesX -1);
-      shapes.add(new MoveableShape(i++, BACK_S, x, y, -1, xsp*x-rectW/2+xsp/2, -rectH/2+ysp/2+y*ysp, -zSpacing*(numRectZ-1), xsp, ysp, 0, 0, 0));
+      shapes.add(new MoveableShape(i++, BACK_S, x, y, numRectZ-1, xsp*x-rectW/2+xsp/2, -rectH/2+ysp/2+y*ysp, -zSpacing*(numRectZ-1), xsp, ysp, 0, 0, 0));
     }
   }
 }

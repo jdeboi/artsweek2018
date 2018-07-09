@@ -2,7 +2,7 @@ class MoveableShape extends Shape {
 
   int side, xSide, ySide, zSide;
   float x, y, z, w, h, rx, ry, rz;
-  
+
 
   MoveableShape(int i, int side, int xSide, int ySide, int zSide, float x, float y, float z, float w, float h, float rx, float ry, float rz) {
     super(i);
@@ -22,7 +22,6 @@ class MoveableShape extends Shape {
     addPoint(new PVector(w/2, -h/2, 0));
     addPoint(new PVector(w/2, h/2, 0));
     addPoint(new PVector(-w/2, h/2, 0));
-
   }
 
   void display() {
@@ -37,18 +36,19 @@ class MoveableShape extends Shape {
     rotateZ(rz);
 
     translate(x, y, z);
-    pulse(-1, 200);
+    //pulse(-1, 200);
+    //pulseRainbow();
     //if (side == BACK_S) fill(0);
+    fill(c);
     super.display();
-    
+
     //stroke(255);
     noStroke();
     //sidesToRects(10);
     //drawMoveable();
     popMatrix();
-    
-    //checkMouseOver();
 
+    //checkMouseOver();
   }
 
   void pulse(int direction, int speed) {
@@ -64,6 +64,35 @@ class MoveableShape extends Shape {
     } else fill(100);
   }
 
+
+  void setGradientZ(color c1, color c2, int jump) {
+    colorMode(HSB, 255);
+    int colhue = (frameCount%255) + zSide*jump;
+    if (colhue < 0) colhue += 255;
+    else if (colhue > 255) colhue -= 255;
+    colorMode(RGB, 255);
+    float m;
+    if (colhue < 127) {
+      m = constrain(map(colhue, 0, 127, 0, 1), 0, 1);
+      c = lerpColor(c1, c2, m);
+    }
+    else {
+      m = constrain(map(colhue, 127, 255, 0, 1), 0, 1);
+      c = lerpColor(c2, c1, m);
+    }
+  }
+
+
+
+  void setRainbow(int jump) {
+    colorMode(HSB, 255);
+    int colhue = (frameCount%255) + zSide*jump;
+    if (colhue < 0) colhue += 255;
+    else if (colhue > 255) colhue -= 255;
+    if (zSide == numRectZ-1) c = 0;
+    else c = color(colhue, 255, 255);
+  }
+
   void sideColor(color[] cols) {
     if (side == BACK_S) {
       fill(cols[5]);
@@ -77,7 +106,7 @@ class MoveableShape extends Shape {
       fill(cols[2]);
     }
   }
-  
+
   void sidesToRects(int s) {
     int jump = 1;
     pushMatrix();
@@ -89,7 +118,7 @@ class MoveableShape extends Shape {
     super.sidesToRects(s);
     popMatrix();
   }
-  
+
   PVector checkMouseOver() {
     for (PVector p : pts) {
       PVector temp = new PVector(screenX(p.x, p.y, p.z), screenY(p.x, p.y, p.z));

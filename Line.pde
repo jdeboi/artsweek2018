@@ -150,7 +150,7 @@ class Line {
     for (int i = 0; i < num; i++) {
       float x = map(i, -.5, twinkleRange, p1.x, p2.x);
       float y = map(i, -.5, twinkleRange, p1.y, p2.y);
-      ellipse(x, y,4, 10);
+      ellipse(x, y, 4, 10);
     }
   }
 
@@ -195,7 +195,7 @@ class Line {
       displayNone();
     }
   }
-  
+
   void displayNone() {
     //strokeWeight(18);
     display(color(0));
@@ -294,6 +294,11 @@ class Line {
     }
   }
 
+  void displayZIndex() {
+    colorMode(HSB, 255);
+    display(color(map(zIndex, 0, numRectZ-1, 0, 255), 255, 255));
+  }
+
   void displayByIDsPercent(int id1, int id2, float per) {
     if (findByID(id1, id2)) {
       displayPercent(per);
@@ -308,7 +313,7 @@ class Line {
         float z = map(i, 0, 50, z1, z2);
         float s = map(z, 0, 9, 0, 255);
         stroke((s+pulse)%255, 255, 255);
-        
+
         PVector pTemp = PVector.lerp(p1, p2, i/50.0);
         PVector pTempEnd = PVector.lerp(pTemp, p2, (i+1)/50.0);
         line(pTemp.x, pTemp.y, pTempEnd.x, pTempEnd.y);
@@ -382,5 +387,21 @@ class Line {
 
   int getY2() {
     return int(p2.y);
+  }
+
+  void setGradientZ(color c1, color c2, int jump) {
+    colorMode(HSB, 255);
+    int colhue = (frameCount%255) + zIndex*jump;
+    if (colhue < 0) colhue += 255;
+    else if (colhue > 255) colhue -= 255;
+    colorMode(RGB, 255);
+    float m;
+    if (colhue < 127) {
+      m = constrain(map(colhue, 0, 127, 0, 1), 0, 1);
+      display(lerpColor(c1, c2, m));
+    } else {
+      m = constrain(map(colhue, 127, 255, 0, 1), 0, 1);
+      display(lerpColor(c2, c1, m));
+    }
   }
 }

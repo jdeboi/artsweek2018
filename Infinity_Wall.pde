@@ -1,6 +1,7 @@
-boolean NEW_GRAPH = false;
+boolean NEW_GRAPH = true;
 boolean SEND_PANEL = false;
-boolean FFT_ON = true;
+boolean FFT_ON = false;
+boolean KINECT_ON = false;
 //////////////////////////////////////////////////////////
 import java.nio.ByteBuffer;
 import processing.net.*;
@@ -19,7 +20,8 @@ int DELETE_NODES = 8;
 int SET_NODES_Z = 7;
 int SET_LINEZ = 5;
 int SET_CONST = 6;
-int mode = VISUALIZE;
+int MOVEABLE_LINES = 9;
+int mode = ADD_NODES;
 
 int currentScene = -1;
 int visualMode = -1;
@@ -38,95 +40,72 @@ int triggeredTime = 0;
 PImage whale, hand, orchid, moth, owl;
 int currentString;
 
+// grid and balls
+int zSpacing, rectW, rectH, numLinesY, numLinesX, numRectZ;
+ArrayList<Ball> balls;
+ArrayList<Shape> shapes;
+int TOP_S = 0;
+int BOTTOM_S = 1;
+int LEFT_S = 2;
+int RIGHT_S = 3;
+int BACK_S = 4;
 
+long lastChecked = 0;
+int visualIndex = 0;
+int lastCheckedMode = 0;
+color c1, c2;
 
 void setup() {
-  //fullScreen();
-  size(400, 400);
+  fullScreen(P3D);
+
+  //size(400, 400);
   lines = new ArrayList<Line>();
+  shapes = new ArrayList<Shape>();
   graphL = new GraphList(100);
   if (!NEW_GRAPH) graphL.loadGraph();
+  initModes();
+  initGrid();
+  setRects();
 
-
-  if (FFT_ON) {
-    initFFT(0);
-    initBeat();
-  }
-
-  //initKinect();
-  initBodyPoints();
-
-  if (SEND_PANEL) myServer = new Server(this, 5204);
-
-  whale = loadImage("assets/whale.png");
-  hand = loadImage("assets/handeye.png");
-  orchid = loadImage("assets/orchid.png");
-  moth = loadImage("assets/moth.png");
-  owl = loadImage("assets/owl.png");
-
-  initDeltaWaves();
-  initCycles();
-  initKirasu();
-  initRiteOfSpring();
-  initSongForM();
+  colorMode(HSB, 255);
+  c1 = color(random(255), 255, 255);
+  c2 = color(random(255), 255, 255);
 }
 
 
 //--------------------------------------------------------------
 void draw() {
-
-  if (FFT_ON) {
-    updateFFT();
-    updateBeats();
-  }
-
-
-  if (blackBackground()) background(0);
-
+  background(0);
+  pointLight(205, 205, 205, mouseX, mouseY, -100);
   if (mode == VISUALIZE) {
+    noCursor();
+    pushMatrix();
+    translate(width/2, height/2, 0);
+    //setRainbowPulse(20);
+    setGradientZs();
+    displayShapes();
+
+    popMatrix();
+
     stroke(255);
     fill(255);
-    strokeWeight(4);
-
-    checkScene();
+    strokeWeight(3);
+    changeMode();
     playMode();
-
-    checkNextSong();
-
-    //displayThirdsBeat();
-    //twinkleLines();
-
-    //drawKinect();
-
-    // if (!NEW_GRAPH) graphL.drawOrganicPath3D(17, new PVector(mouseX, mouseY, 0));
-    //testKinect();
+    //for (Line l : lines) {
+    //  l.display(255);
+    //}
   } else {
-    strokeWeight(4);
     settingFunctions();
-  }
-
-
-
-
-
-
-  if (SEND_PANEL) {
-    checkNextSong();
-    if (millis() - sendTime > 100) {
-      sendPanel();
-      sendTime = millis();
-    }
   }
 }
 
-void sendPanel() {
-  //byte b = byte(constrain(map(bands[0], 0, bandMax[0], 0, 255), 0, 255));
-  int duration = myAudio.position();
-  byte byteDuration[] = ByteBuffer.allocate(4).putInt(duration).array();
-  byte[] sendArray = {47, panelMode.getPanelByte(), getHandPanelX(), getHandPanelY(), getHandPanelZ(), 
-    byte(currentSong), byteDuration[0], byteDuration[1], byteDuration[2], byteDuration[3]};
-  myServer.write(sendArray);
-  //println(sendArray);
+void changeMode() {
+  if (millis() - lastCheckedMode > 8000) {
+    if (int(random(2)) == 0) visualMode = V_DISPLAY;
+    else visualMode = int(random(15));
+    lastCheckedMode = millis();
+  }
 }
 
 //--------------------------------------------------------------
@@ -138,18 +117,16 @@ void keyPressed() {
   else if (key == 'a') mode = ADD_NODES;
   else if (key == 'e') mode = ADD_EDGES;
   else if (key == 'm') mode = MOVE_LINES;
+  else if (key == 't') mode = MOVEABLE_LINES;
   else if (key == 'n') mode = MOVE_NODES;
   else if (key == 'd') mode = DELETE_NODES;
-  else if (key == 'z') mode = SET_NODES_Z;
+  else if (key == 'z') mode = SET_LINEZ;
   else if (key == 'c') {
     mode = SET_CONST;
   } else if (key == 'v') {
     mode = VISUALIZE;
   } else if (key == 'p') {
     graphL.printGraph();
-    for (int i = 0; i < bandMax.length; i++) {
-      println(bandMax[i]);
-    }
   } else if (mode == MOVE_LINES) {
     if (lineIndex >= 0) {
       Line l = lines.get(lineIndex);
@@ -157,10 +134,10 @@ void keyPressed() {
       else if (keyCode == DOWN) l.moveP1(0, 1);
       else if (keyCode == RIGHT) l.moveP1(1, 0);
       else if (keyCode == LEFT) l.moveP1(-1, 0);
-      else if (keyCode == 73) l.moveP2(0, -1);     
-      else if (keyCode == 75) l.moveP2(0, 1);     
-      else if (keyCode == 76) l.moveP2(1, 0);
-      else if (keyCode == 74) l.moveP2(-1, 0);
+      else if (key == 'i') l.moveP2(0, -1);     
+      else if (key == 'k') l.moveP2(0, 1);     
+      else if (key == 'l') l.moveP2(1, 0);
+      else if (key == 'j') l.moveP2(-1, 0);
     }
   } else if (mode == MOVE_NODES) {
     if (graphL.hasCurrentNode()) {
@@ -189,8 +166,8 @@ void keyPressed() {
       lines.get(lineIndex).setConstellationG(k);
     }
   } else if (mode == VISUALIZE) {
-    if (key == '9') currentBeat++;
   }
+  return;
 }
 
 // get a string
@@ -236,7 +213,6 @@ void mouseReleased() {
 
 void setLines() {
   for (int i = 0; i < lines.size(); i++) {
-    strokeWeight(4);
     Line l = lines.get(i);
     if (l.mouseOver()) {
       stroke(255);
@@ -259,7 +235,6 @@ void setLines() {
 void setConst() {
   background(50);
   for (int i = 0; i < lines.size(); i++) {
-    strokeWeight(4);
     Line l = lines.get(i);
     if (l.mouseOver()) {
       stroke(255);
@@ -314,6 +289,8 @@ void displayBox(int hue, String title) {
 void settingFunctions() {
   graphL.displayNodes();
   graphL.displayNodeLabels();
+
+  strokeWeight(3);
   displayLines(255);
 
   if (mode == ADD_EDGES) {
@@ -335,10 +312,87 @@ void settingFunctions() {
   } else if (mode == SET_CONST) {
     setConst();
     displayBox(140, "SET CONSTELLATIONS");
+  } else if (mode == SET_LINEZ) {
+    displayZIndexes();
   }
 }
 
+void displayZIndexes() {
+  for (Line l : lines) {
+    l.displayZIndex();
+  }
+}
 boolean blackBackground() {
   if (kinectMode == K_PAINT) return false;
   return true;
+}
+
+void saveShapes() {
+  processing.data.JSONObject json;
+  json = new processing.data.JSONObject();
+  json.setInt("num", shapes.size());
+  saveJSONObject(json, "data/shapes/numShapes.json");
+  for (Shape s : shapes) {
+    s.saveShape();
+  }
+}
+
+void loadShapes() {
+  processing.data.JSONObject graphJson;
+  graphJson = loadJSONObject("data/shapes/numShapes.json");
+  int numShapes = graphJson.getInt("numShapes");
+  //println(numShapes);
+
+  shapes = new ArrayList<Shape>();
+  for (int i = 0; i < numShapes; i++) {
+    processing.data.JSONObject shape = loadJSONObject("data/shapes/shape_" + i + ".json");
+    int num = shape.getInt("num");
+    shapes.add(new Shape(num));
+    processing.data.JSONArray ptsArray = shape.getJSONArray("ptsArray");
+    for (int j = 0; j < ptsArray.size(); j+=3) {
+      float x = ptsArray.getFloat(j);
+      float y = ptsArray.getFloat(j+1);
+      float z = ptsArray.getFloat(j+2);
+      shapes.get(shapes.size() -1).addPoint(new PVector(x, y, z));
+    }
+  }
+}
+
+void displayShapes() {
+  for (Shape s : shapes) {
+    s.display();
+  }
+}
+
+void rainbowStrip() {
+  colorMode(HSB, 255);
+  if (millis() - lastChecked > 500) {
+    lastChecked = millis();
+    visualIndex++;
+    visualIndex %= 7;
+    println(visualIndex);
+    for (Shape s : shapes) {
+      if (((MoveableShape) s).zSide == visualIndex) {
+        s.c = color(map(((MoveableShape) s).zSide, 0, 7, 0, 255), 255, 255);
+      } else s.c = color(map(((MoveableShape) s).zSide, 0, 7, 0, 255), 55, 55);
+    }
+  }
+}
+
+void setGradientZs() {
+  colorMode(HSB, 255);
+  if (millis() - lastChecked > 8000) {
+    c1 = color(random(255), 255, 255);
+    c2 = color((hue(c1)+80)%255, 255, 255);
+    lastChecked = millis();
+  }
+  for (Shape s : shapes) {
+    ((MoveableShape) s).setGradientZ(c1, c2, 30);
+  }
+}
+
+void setRainbowPulse(int jump) {
+  for (Shape s : shapes) {
+    ((MoveableShape) s).setRainbow(jump);
+  }
 }

@@ -15,6 +15,7 @@ int V_NONE,
   V_PULSING_ON_LINE, 
   V_SEGMENT_SHIFT, 
   V_FADE, 
+  V_DISPLAY,
   V_TRANSIT;
 
 /////////////////////
@@ -54,6 +55,7 @@ void initModes() {
   V_SEGMENT_SHIFT = temp++; 
   V_FADE = temp++;
   V_TRANSIT = temp++;
+  V_DISPLAY = temp++;
 }
 void playMode() {
   if (visualMode == V_ROTATE_ANGLE_COUNT) rotateAngleCounter(100, 20);
@@ -68,6 +70,7 @@ void playMode() {
   else if (visualMode == V_PULSING_ON_LINE) pulseLinesCenter(1);
   else if (visualMode == V_SEGMENT_SHIFT) segmentShift(10);
   else if (visualMode == V_TRANSIT) transit(30);
+  else if (visualMode == V_DISPLAY) displayLines(255);
 }
 
 //////////////////////////////////////////////////////////////////
